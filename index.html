@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NSG AI Video Analysis — Single Page Dashboard (Prototype)</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#071028 0%, #081426 100%);color:#e6eef6}
+    header{display:flex;align-items:center;gap:16px;padding:18px 24px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));backdrop-filter:blur(4px)}
+    .logo{width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#60a5fa);display:flex;align-items:center;justify-content:center;font-weight:700;color:#052024}
+    h1{font-size:18px;margin:0}
+    .container{display:grid;grid-template-columns:260px 1fr;gap:20px;padding:20px}
+    nav{background:var(--card);border-radius:12px;padding:14px;height:calc(100vh - 120px);overflow:auto}
+    nav h3{margin:0 0 8px 0;color:var(--muted);font-size:13px}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#cfe9f3;margin-bottom:6px;cursor:pointer}
+    .nav-item:hover{background:var(--glass)}
+    .active{background:linear-gradient(90deg, rgba(6,182,212,0.12), rgba(96,165,250,0.06));border-left:3px solid var(--accent);padding-left:7px}
+    main{padding:12px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
+    .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;color:#dff6ff;cursor:pointer}
+    .outline{border:1px dashed rgba(255,255,255,0.04);padding:10px;border-radius:8px;margin-top:8px}
+    .feeds{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .feed-box{background:#061220;height:200px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);position:relative}
+    .feed-box video{max-width:100%;max-height:100%;border-radius:6px}
+    .badge{position:absolute;left:8px;top:8px;background:rgba(0,0,0,0.5);padding:6px;border-radius:6px;font-size:12px}
+    .alerts{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow:auto}
+    .alert{padding:8px;border-radius:8px;border-left:4px solid #f97316;background:linear-gradient(90deg, rgba(249,115,22,0.06), transparent);font-size:13px}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+    .metric{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;text-align:center}
+    .small{font-size:12px;color:var(--muted)}
+    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .file-input{display:flex;gap:8px;align-items:center}
+    .kbd{background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;font-size:12px}
+    footer{padding:12px;text-align:center;color:var(--muted);font-size:13px}
+    /* responsive */
+    @media (max-width:980px){.container{grid-template-columns:1fr} .grid{grid-template-columns:1fr} nav{height:auto}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">NSG</div>
+    <div>
+      <h1>NSG — AI/ML Video Analysis (Prototype)</h1>
+      <div style="font-size:12px;color:var(--muted)">Single-page dashboard — UI placeholders & model integration area</div>
+    </div>
+    <div style="margin-left:auto;color:var(--muted)"><span class="kbd">Role: Admin</span></div>
+  </header>
+
+  <div class="container">
+    <nav class="card" id="sidebar">
+      <h3>Main Sections</h3>
+      <div class="nav-item active" data-section="live">Live Feed</div>
+      <div class="nav-item" data-section="upload">Uploaded Videos</div>
+      <div class="nav-item" data-section="analysis">Analysis & Alerts</div>
+      <div class="nav-item" data-section="reports">Reports</div>
+      <div class="nav-item" data-section="heatmap">Heatmaps</div>
+      <div class="nav-item" data-section="archives">Archives</div>
+      <div class="nav-item" data-section="model">Model Integration</div>
+      <div class="nav-item" data-section="settings">Settings & Users</div>
+      <hr style="border:none;height:1px;background:rgba(255,255,255,0.02);margin:12px 0">
+      <h3>Quick Actions</h3>
+      <div class="nav-item" id="connectAll">Connect All Cameras</div>
+      <div class="nav-item" id="runAnalysis">Start Analysis</div>
+      <div class="nav-item" id="exportBtn">Export Report</div>
+    </nav>
+
+    <main>
+      <div class="grid">
+        <section class="card" id="mainPanel">
+          <!-- Live / Upload / Analysis will be swapped here -->
+          <div id="liveSection">
+            <div class="toolbar">
+              <div>
+                <strong>Live Feeds</strong>
+                <div style="font-size:12px;color:var(--muted)">Multiple sources: CCTV | Drone | Bodycam | Robot</div>
+              </div>
+              <div>
+                <button class="btn" onclick="toggleGrid()">Toggle Grid</button>
+                <button class="btn" id="startBtn">Start</button>
+                <button class="btn" id="stopBtn">Stop</button>
+              </div>
+            </div>
+
+            <div class="feeds" id="feeds">
+              <div class="feed-box" data-source="cam1">
+                <div class="badge">CAM 1 — CCTV</div>
+                <div>Live placeholder</div>
+              </div>
+              <div class="feed-box" data-source="cam2">
+                <div class="badge">DRONE 1</div>
+                <div>Live placeholder</div>
+              </div>
+              <div class="feed-box" data-source="cam3">
+                <div class="badge">BODY CAM</div>
+                <div>Live placeholder</div>
+              </div>
+              <div class="feed-box" data-source="cam4">
+                <div class="badge">ROBOT</div>
+                <div>Live placeholder</div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:12px;margin-top:12px">
+              <div style="flex:1" class="outline card">
+                <div class="section-title"><strong>Realtime Alerts</strong><span class="small">Auto-generated</span></div>
+                <div class="alerts" id="alerts">
+                  <div class="alert">No active alerts — system idle</div>
+                </div>
+              </div>
+
+              <div style="width:320px" class="outline card">
+                <div class="section-title"><strong>Performance</strong><span class="small">FPS / Inference</span></div>
+                <div class="metrics">
+                  <div class="metric"><div class="small">FPS</div><div id="fps">0</div></div>
+                  <div class="metric"><div class="small">GPU</div><div id="gpu">0%</div></div>
+                  <div class="metric"><div class="small">Latency</div><div id="latency">0 ms</div></div>
+                </div>
+                <div style="margin-top:8px" class="small">Inference engine: <span id="engine">Not loaded</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="uploadSection" style="display:none">
+            <div class="section-title"><strong>Upload Videos / Batch Import</strong>
+              <div class="small">Supported: MP4, AVI, MKV, MOV</div>
+            </div>
+            <div class="outline" style="display:flex;gap:12px;align-items:center;justify-content:space-between">
+              <div>
+                <input type="file" id="videoUpload" accept="video/*" multiple />
+                <div class="small" style="margin-top:6px">Upload one or multiple video files for offline analysis.</div>
+              </div>
+              <div>
+                <button class="btn" id="importBtn">Import & Analyze</button>
+              </div>
+            </div>
+
+            <div style="margin-top:12px"><strong>Uploaded List</strong>
+              <div id="uploadedList" class="outline" style="margin-top:8px"></div>
+            </div>
+          </div>
+
+          <div id="analysisSection" style="display:none">
+            <div class="section-title"><strong>Analysis & Detections</strong><span class="small">Object | Behavior | Face</span></div>
+            <div class="outline">
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div class="kbd">Detect: Weapons</div>
+                <div class="kbd">Detect: Faces</div>
+                <div class="kbd">Detect: Loitering</div>
+                <div class="kbd">Detect: Unattended Bag</div>
+                <div class="kbd">Threshold: <input id="conf" type="range" min="0" max="100" value="50" /></div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px">
+              <strong>Detections Timeline</strong>
+              <div id="timeline" class="outline" style="margin-top:8px;height:160px;overflow:auto">No detections yet</div>
+            </div>
+          </div>
+
+          <div id="reportsSection" style="display:none">
+            <div class="section-title"><strong>Reports</strong><span class="small">Export: PDF / CSV / JSON</span></div>
+            <div class="outline">
+              <div style="display:flex;gap:8px">
+                <input type="date" id="rfrom" /> to <input type="date" id="rto" />
+                <button class="btn" id="genReport">Generate</button>
+              </div>
+              <div id="reportOutput" style="margin-top:8px"></div>
+            </div>
+          </div>
+
+          <div id="heatmapSection" style="display:none">
+            <div class="section-title"><strong>Heatmaps & Activity Zones</strong><span class="small">Visualize hot spots</span></div>
+            <div class="outline" style="height:260px;display:flex;align-items:center;justify-content:center">Heatmap placeholder</div>
+          </div>
+
+          <div id="archivesSection" style="display:none">
+            <div class="section-title"><strong>Archive Search</strong><span class="small">Filter by date, camera, event</span></div>
+            <div class="outline">
+              <div style="display:flex;gap:8px">
+                <input placeholder="Camera ID" id="fcam" />
+                <input type="date" id="fdate" />
+                <button class="btn" id="searchArchive">Search</button>
+              </div>
+              <div id="archiveResults" style="margin-top:8px"></div>
+            </div>
+          </div>
+
+          <div id="modelSection" style="display:none">
+            <div class="section-title"><strong>Model Integration</strong><span class="small">Upload / Manage trained models</span></div>
+            <div class="outline">
+              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                <div style="flex:1">
+                  <div class="small">Upload a trained model file (TensorFlow SavedModel, ONNX, TorchScript, or custom bundle).</div>
+                  <input type="file" id="modelUpload" accept=".zip,.tar,.onnx,.pt,.pth" />
+                  <div class="small" style="margin-top:6px">Model name: <input id="modelName" placeholder="e.g., weapon_detector_v1" /></div>
+                  <div class="small" style="margin-top:6px">Framework: 
+                    <select id="modelFramework">
+                      <option>Not specified</option>
+                      <option>TensorFlow (SavedModel)</option>
+                      <option>ONNX</option>
+                      <option>PyTorch (TorchScript)</option>
+                      <option>Custom</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="width:260px;text-align:right">
+                  <div class="small">Status: <span id="modelStatus">No model loaded</span></div>
+                  <button class="btn" id="uploadModelBtn">Upload Model</button>
+                  <div style="margin-top:8px" class="small">Integration notes:
+                    <ul style="margin:6px 0 0 18px;color:var(--muted)">
+                      <li>Model will be stored server-side (placeholder).</li>
+                      <li>Client-side inference hooks available in main.js (placeholder).</li>
+                      <li>Provide model path & input/output mapping when ready.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px">
+              <strong>Model History</strong>
+              <div id="modelList" class="outline" style="margin-top:8px">No models yet</div>
+            </div>
+          </div>
+
+          <div id="settingsSection" style="display:none">
+            <div class="section-title"><strong>Settings & Users</strong><span class="small">Roles, Permissions, Integrations</span></div>
+            <div class="outline">
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div style="min-width:200px">
+                  <div class="small">Users</div>
+                  <div style="margin-top:6px">Admin / Analyst / Viewer roles — add user form (placeholder)</div>
+                </div>
+                <div style="min-width:200px">
+                  <div class="small">Integrations</div>
+                  <div style="margin-top:6px">APIs: Watchlist DB, Law Enforcement, GIS (placeholders)</div>
+                </div>
+                <div style="min-width:200px">
+                  <div class="small">Security</div>
+                  <div style="margin-top:6px">2FA, Audit logs, Encryption (placeholders)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <aside class="card" id="rightPanel">
+          <div class="section-title"><strong>Quick Summary</strong><span class="small">At-a-glance</span></div>
+          <div class="small">Connected Sources</div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <div class="kbd">CCTV: 4</div><div class="kbd">Drone: 1</div><div class="kbd">Bodycam: 2</div><div class="kbd">Robot: 1</div>
+          </div>
+
+          <div style="margin-top:12px">
+            <div class="section-title"><strong>Recent Alerts</strong><span class="small">Last 24h</span></div>
+            <div class="alerts" id="rightAlerts">
+              <div class="alert">— No critical alerts</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <div class="section-title"><strong>Saved Clips</strong><span class="small">For evidence</span></div>
+            <div id="clips" class="outline small" style="height:120px;overflow:auto">No clips</div>
+          </div>
+
+          <div style="margin-top:12px">
+            <div class="section-title"><strong>System Logs</strong><span class="small">Audit</span></div>
+            <div id="syslogs" class="outline small" style="height:120px;overflow:auto">No logs</div>
+          </div>
+
+        </aside>
+      </div>
+
+      <footer class="small card" style="margin-top:12px">Prototype UI — placeholders only. Model upload area reserved for your future trained model. After uploading, configure server-side paths & input/output mapping for inference integration.</footer>
+    </main>
+  </div>
+
+  <script>
+    // Simple SPA-like navigation and lightweight interactions
+    const sections = {
+      live: document.getElementById('liveSection'),
+      upload: document.getElementById('uploadSection'),
+      analysis: document.getElementById('analysisSection'),
+      reports: document.getElementById('reportsSection'),
+      heatmap: document.getElementById('heatmapSection'),
+      archives: document.getElementById('archivesSection'),
+      model: document.getElementById('modelSection'),
+      settings: document.getElementById('settingsSection')
+    };
+    document.querySelectorAll('#sidebar .nav-item').forEach(it=>it.addEventListener('click', ()=>{
+      document.querySelectorAll('#sidebar .nav-item').forEach(n=>n.classList.remove('active'));
+      it.classList.add('active');
+      const sec = it.getAttribute('data-section');
+      Object.values(sections).forEach(s=>s.style.display='none');
+      if(sections[sec]) sections[sec].style.display='block';
+    }));
+
+    // Quick actions
+    document.getElementById('connectAll').onclick = ()=> addLog('Attempted to connect all cameras (placeholder)');
+    document.getElementById('runAnalysis').onclick = ()=> addLog('Analysis started (placeholder)');
+    document.getElementById('exportBtn').onclick = ()=> alert('Export report (placeholder)');
+
+    // Simple simulated performance updates
+    let fpsEl = document.getElementById('fps'), gpuEl = document.getElementById('gpu'), latEl = document.getElementById('latency'), engine = document.getElementById('engine');
+    let fps = 0, gpu = 0, lat = 0;
+    setInterval(()=>{
+      fps = Math.max(0, Math.floor(Math.random()*30));
+      gpu = Math.floor(Math.random()*80);
+      lat = Math.floor(Math.random()*200);
+      fpsEl.textContent = fps;
+      gpuEl.textContent = gpu + '%';
+      latEl.textContent = lat + ' ms';
+    },2000);
+
+    // Start / Stop buttons simulate feed and alerts
+    document.getElementById('startBtn').addEventListener('click', ()=>{
+      addAlert('Analysis engine started — monitoring live feeds');
+      document.getElementById('engine').textContent = 'Demo engine (client-side placeholder)';
+      pushTimeline('Engine started');
+    });
+    document.getElementById('stopBtn').addEventListener('click', ()=>{
+      addAlert('Analysis engine stopped');
+      document.getElementById('engine').textContent = 'Not loaded';
+      pushTimeline('Engine stopped');
+    });
+
+    // Upload video list
+    const uploadedList = document.getElementById('uploadedList');
+    document.getElementById('videoUpload').addEventListener('change', (e)=>{
+      const files = Array.from(e.target.files);
+      files.forEach(f=>{
+        const id = 'u_'+Math.random().toString(36).slice(2,9);
+        const el = document.createElement('div');
+        el.style.padding='6px'; el.style.borderBottom='1px solid rgba(255,255,255,0.02)';
+        el.textContent = f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+        uploadedList.appendChild(el);
+        addLog('Uploaded '+f.name);
+      });
+    });
+
+    // Model upload handling (placeholder)
+    const modelList = document.getElementById('modelList');
+    document.getElementById('uploadModelBtn').addEventListener('click', ()=>{
+      const file = document.getElementById('modelUpload').files[0];
+      const name = document.getElementById('modelName').value || (file?file.name:'unnamed');
+      const framework = document.getElementById('modelFramework').value;
+      if(!file){ alert('Please choose a model file to upload (placeholder).'); return; }
+      const entry = document.createElement('div');
+      entry.style.padding='8px'; entry.style.borderBottom='1px solid rgba(255,255,255,0.02)';
+      entry.innerHTML = '<strong>'+name+'</strong> — '+framework+' <div class="small">Uploaded (client placeholder)</div>';
+      modelList.appendChild(entry);
+      document.getElementById('modelStatus').textContent = name+' (loaded client-side placeholder)';
+      addLog('Model uploaded: '+name+' ('+framework+')');
+    });
+
+    // Reports / archives placeholders
+    document.getElementById('genReport').addEventListener('click', ()=>{
+      const from = document.getElementById('rfrom').value, to = document.getElementById('rto').value;
+      const out = document.getElementById('reportOutput');
+      out.innerHTML = '<div class="small">Report generated (placeholder).<br/>Range: '+(from||'any')+' → '+(to||'any')+'</div>';
+      addLog('Generated report: '+(from||'any')+' → '+(to||'any'));
+    });
+    document.getElementById('searchArchive').addEventListener('click', ()=>{
+      const cam = document.getElementById('fcam').value, date = document.getElementById('fdate').value;
+      document.getElementById('archiveResults').innerHTML = '<div class="small">Search results (placeholder): Camera '+(cam||'any')+' | Date '+(date||'any')+'</div>';
+      addLog('Archive search: '+(cam||'any')+' | '+(date||'any'));
+    });
+
+    // Simple utilities
+    function addAlert(txt){ const a = document.createElement('div'); a.className='alert'; a.textContent = '['+new Date().toLocaleTimeString()+'] '+txt; const al = document.getElementById('alerts'); al.prepend(a); const ral = document.getElementById('rightAlerts'); ral.prepend(a.cloneNode(true)); }
+    function addLog(txt){ const l = document.getElementById('syslogs'); const p = document.createElement('div'); p.textContent = '['+new Date().toLocaleTimeString()+'] '+txt; l.prepend(p); }
+    function pushTimeline(txt){ const t = document.getElementById('timeline'); const p = document.createElement('div'); p.textContent = '['+new Date().toLocaleTimeString()+'] '+txt; t.prepend(p); }
+
+    // Toggle feed grid (visual)
+    function toggleGrid(){ const f = document.getElementById('feeds'); if(f.style.gridTemplateColumns.includes('2')){ f.style.gridTemplateColumns='repeat(1,1fr)'; } else { f.style.gridTemplateColumns='repeat(2,1fr)'; } }
+
+    // small demo logs
+    addLog('UI loaded');
+  </script>
+</body>
+</html>
