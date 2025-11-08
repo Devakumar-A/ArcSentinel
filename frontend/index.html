@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NSG AI Video Analysis — Dashboard</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#071028 0%, #081426 100%);color:#e6eef6}
+    header{display:flex;align-items:center;gap:16px;padding:18px 24px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));backdrop-filter:blur(4px)}
+    .logo{width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#60a5fa);display:flex;align-items:center;justify-content:center;font-weight:700;color:#052024}
+    h1{font-size:18px;margin:0}
+    .container{display:grid;grid-template-columns:260px 1fr;gap:20px;padding:20px}
+    nav{background:var(--card);border-radius:12px;padding:14px;height:calc(100vh - 120px);overflow:auto}
+    nav h3{margin:0 0 8px 0;color:var(--muted);font-size:13px}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#cfe9f3;margin-bottom:6px;cursor:pointer}
+    .nav-item:hover{background:var(--glass)}
+    .active{background:linear-gradient(90deg, rgba(6,182,212,0.12), rgba(96,165,250,0.06));border-left:3px solid var(--accent);padding-left:7px}
+    main{padding:12px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
+    .feed-box{background:#061220;height:360px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);position:relative}
+    .feed-box video{max-width:100%;max-height:100%;border-radius:6px}
+    .badge{position:absolute;left:8px;top:8px;background:rgba(0,0,0,0.5);padding:6px;border-radius:6px;font-size:12px}
+    .alerts{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow:auto}
+    .alert{padding:8px;border-radius:8px;border-left:4px solid #f97316;background:linear-gradient(90deg, rgba(249,115,22,0.06), transparent);font-size:13px}
+    .metric{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;text-align:center}
+    .small{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">NSG</div>
+    <div>
+      <h1>NSG — AI/ML Video Analysis</h1>
+      <div style="font-size:12px;color:var(--muted)">Live feed + Face & Weapon Detection</div>
+    </div>
+    <div style="margin-left:auto;color:var(--muted)"><span class="small">Role: Admin</span></div>
+  </header>
+
+  <div class="container">
+    <nav class="card" id="sidebar">
+      <h3>Sections</h3>
+      <div class="nav-item active" data-section="live">Live Feed</div>
+      <div class="nav-item" data-section="alerts">Alerts</div>
+    </nav>
+
+    <main>
+      <div class="grid">
+        <section class="card" id="mainPanel">
+          <div id="liveSection">
+            <div class="feed-box">
+              <div class="badge">Live Feed</div>
+              <video id="video" autoplay muted></video>
+            </div>
+            <div style="margin-top:12px">
+              <div><strong>Detections:</strong></div>
+              <ul id="detections"></ul>
+            </div>
+          </div>
+
+          <div id="alertsSection" style="display:none; margin-top:12px;">
+            <div class="section-title"><strong>Realtime Alerts</strong></div>
+            <div class="alerts" id="alerts">
+              <div class="alert">System idle</div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="card">
+          <div class="metric"><div class="small">Face Recognition</div><div id="faceName">—</div></div>
+          <div class="metric" style="margin-top:8px"><div class="small">Weapon Detection</div><div id="weaponList">—</div></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Navigation
+    const sections = {
+      live: document.getElementById('liveSection'),
+      alerts: document.getElementById('alertsSection')
+    };
+    document.querySelectorAll('#sidebar .nav-item').forEach(it=>{
+      it.addEventListener('click', ()=>{
+        document.querySelectorAll('#sidebar .nav-item').forEach(n=>n.classList.remove('active'));
+        it.classList.add('active');
+        const sec = it.getAttribute('data-section');
+        Object.values(sections).forEach(s=>s.style.display='none');
+        if(sections[sec]) sections[sec].style.display='block';
+      });
+    });
+
+    // ---------------- Live Video from IP Webcam ----------------
+    const video = document.getElementById('video');
+    // Replace with your phone IP webcam MJPEG URL
+    const videoStreamUrl = "http://<phone-ip>:8080/video";
+    video.src = videoStreamUrl;
+
+    // ---------------- Poll Flask backend ----------------
+    const faceEl = document.getElementById('faceName');
+    const weaponEl = document.getElementById('weaponList');
+    const detectionsEl = document.getElementById('detections');
+    const alertsEl = document.getElementById('alerts');
+
+    async function pollDetection() {
+      try {
+        const res = await fetch("http://127.0.0.1:5000/detect");
+        const data = await res.json();
+
+        // Update face
+        faceEl.textContent = data.face;
+
+        // Update weapons
+        weaponEl.textContent = data.objects.join(", ") || "None";
+
+        // Update list
+        detectionsEl.innerHTML = "";
+        if(data.face) detectionsEl.innerHTML += `<li>Face: ${data.face}</li>`;
+        if(data.objects && data.objects.length>0){
+          data.objects.forEach(obj=>{
+            detectionsEl.innerHTML += `<li>Object: ${obj}</li>`;
+          });
+        }
+
+        // Update alerts
+        if(data.objects && data.objects.includes("gun")){
+          const alert = document.createElement('div');
+          alert.className = 'alert';
+          alert.textContent = `[${new Date().toLocaleTimeString()}] Gun detected!`;
+          alertsEl.prepend(alert);
+        }
+
+      } catch(err){
+        console.error(err);
+      } finally {
+        setTimeout(pollDetection, 500); // poll every 500ms
+      }
+    }
+
+    pollDetection();
+  </script>
+</body>
+</html>
